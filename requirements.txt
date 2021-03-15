@@ -1,0 +1,3 @@
+termplotlib
+numpy
+rich
