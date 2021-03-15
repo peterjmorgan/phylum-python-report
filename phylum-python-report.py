@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import datetime
+import fileinput
 from math import floor
 import termplotlib as tpl
 from rich import print
@@ -29,6 +30,7 @@ class PhylumReport():
 
         self.layout.split(Layout(name='A'),Layout(name='D'))
         self.layout['D'].size = 10
+        self.layout['D'].visible = False
         self.layout['A'].split(Layout(name='AA'),Layout(name='B'))
         self.layout['B'].split(Layout(name='left'),Layout(name='right'),direction='horizontal')
         self.layout['right'].update(self.build_vuln_table())
@@ -43,6 +45,7 @@ class PhylumReport():
         return
 
     def build_vuln_table(self):
+        temp_vuln_table = dict()
         self.vuln_table = Table(show_header=True, header_style="Bold Magenta")
         self.vuln_table.add_column('Package Name', width=25)
         self.vuln_table.add_column('High')
@@ -60,13 +63,19 @@ class PhylumReport():
                         high += 1
                     elif severity == 'med':
                         med +=1
-                    elif sevirity == 'low':
+                    elif severity == 'low':
                         low +=1
+                    if not temp_vuln_table.get(pkg_name):
+                        temp_vuln_table[pkg_name] = [high,med,low]
+
 
                 #print(f"pkg: {pkg_name} - high:{high} - med:{med} - low:{low}")
                 #  row = [pkg_name, high, med, low]
                 #  vuln_table.append(row)
-                self.vuln_table.add_row(pkg_name, str(high), str(med), str(low))
+                #self.vuln_table.add_row(pkg_name, str(high), str(med), str(low))
+
+        for pkg_name,sevs in temp_vuln_table.items():
+            self.vuln_table.add_row(pkg_name, str(sevs[0]), str(sevs[1]), str(sevs[2]))
 
         #self.layout['right'].update(self.vuln_table)
         panel_vulntable = Panel(self.vuln_table, title="Software Vulnerabilities by Package")
@@ -94,12 +103,6 @@ class PhylumReport():
         return panel_ps_histogram
 
     def build_stats_panel(self):
-        '''
-        Number of packages
-        Started Datetime
-        Updated Datetime
-        Job ID
-        '''
         num_packages = str(len(self.jsondata.get('packages')))
         job_id = self.jsondata.get('id')
         started_timestamp = self.jsondata.get('started_at')
@@ -107,7 +110,8 @@ class PhylumReport():
         started_date_time = str(datetime.datetime.fromtimestamp(started_timestamp/1000).strftime('%c'))
         updated_date_time = str(datetime.datetime.fromtimestamp(updated_timestamp/1000).strftime('%c'))
 
-        self.stats_table = Table(show_header=False)
+        #self.stats_table = Table(show_header=False)
+        self.stats_table = Table.grid()
         self.stats_table.add_column()
         self.stats_table.add_column()
         self.stats_table.add_row("Number of packages", num_packages)
@@ -146,14 +150,7 @@ if __name__ == "__main__":
             message = 'requires filename as argument if STDIN is not piped'
             raise IndexError(message)
         else:
-            input_data = open(input_filename,'rU').read()
+            input_data = open(input_filename,'r').read()
 
     pr.read_cli_response_json(input_data)
-    #pr.build_vuln_table()
-    #pr.build_ps_histogram()
     pr.setup_layout()
-    #pr.draw_layout()
-
-
-
-    #pr.setup_layout()
