@@ -12,6 +12,7 @@ from rich.layout import Layout
 from rich.console import Console
 from rich.panel import Panel
 from numpy import histogram,percentile
+from collections import OrderedDict
 #from subprocess import Call
 from IPython import embed
 from pprint import pprint
@@ -27,15 +28,15 @@ class PhylumReport():
         self.console.clear()
 
     def setup_layout(self):
-
-        self.layout.split(Layout(name='A'),Layout(name='D'))
-        self.layout['D'].size = 10
-        self.layout['D'].visible = False
-        self.layout['A'].split(Layout(name='AA'),Layout(name='B'))
-        self.layout['B'].split(Layout(name='left'),Layout(name='right'),direction='horizontal')
-        self.layout['right'].update(self.build_vuln_table())
-        self.layout['left'].update(self.build_ps_histogram())
-        self.layout['AA'].update(self.build_stats_panel())
+        self.layout.split(Layout(name='A'),Layout(name='B'))
+        self.layout['A'].size = 8
+        self.layout['A'].update(self.build_stats_panel())
+        self.layout['B'].split(Layout(name='C'),Layout(name='D'),direction='horizontal')
+        self.layout['C'].split(Layout(name='E'),Layout(name='F'))
+        self.layout['E'].update(self.build_ps_histogram())
+        self.layout['D'].update(self.build_top_offenders_panel())
+        self.layout['F'].update(self.build_vuln_table())
+        #self.layout['AA'].update(self.build_stats_panel())
         self.console.print(self.layout)
         return
 
@@ -114,14 +115,71 @@ class PhylumReport():
         self.stats_table = Table.grid()
         self.stats_table.add_column()
         self.stats_table.add_column()
-        self.stats_table.add_row("Number of packages", num_packages)
-        self.stats_table.add_row("Started Time", started_date_time)
-        self.stats_table.add_row("Completed Time", updated_date_time)
-        self.stats_table.add_row("Phylum Job ID", job_id)
+        self.stats_table.add_row("[b]Package Count", num_packages)
+        self.stats_table.add_row("[b]Started Time", started_date_time)
+        self.stats_table.add_row("[b]Completed Time", updated_date_time)
+        self.stats_table.add_row("[b]Phylum Job ID", job_id)
 
         panel_stats = Panel(self.stats_table, title="Phylum Report")
-
         return panel_stats
+
+    def build_top_offenders_panel(self):
+        psd = dict()
+        # get all the packages and package_score values
+        for pkg in self.jsondata.get('packages'):
+            name = pkg['name']
+            score = pkg['package_score']
+            #psd[name] = score
+            #h_count = len(pkg['heuristics'].keys())
+            psd[name] = score
+
+        # sort them by package_score
+        spsd = dict(sorted(psd.items(), key=lambda item: item[1]))
+        # get a list of the top (worst) 25
+        top25_offenders = list(spsd.items())[:25]
+
+        # get the why
+        result = OrderedDict()
+        for x in top25_offenders:
+            name,score = x
+            result[name] = dict()
+            result[name]['score'] = score
+            for pkg in self.jsondata.get('packages'):
+                if pkg['name'] == name:
+                    vulns = pkg['vulnerabilities'] # list
+                    result[name]['vuln_count'] = len(vulns)
+                    #TODO: add package_score to vulnerability table
+                    heur = pkg['heuristics'] # dict
+                    min_hscore = 1
+                    min_hname = "blah"
+                    for hname,hval in heur.items():
+                        hscore = hval.get('score') # might need to get raw_score?
+                        if hscore < min_hscore:
+                            min_hscore = hscore
+                            min_hname = hname
+                    result[name]['heur_min_name'] = min_hname
+                    result[name]['heur_min_score'] = min_hscore
+
+        self.offenders_table = Table(show_header=True)
+        self.offenders_table.add_column('Package Name')
+        self.offenders_table.add_column('Package Score')
+        self.offenders_table.add_column('Num - Vulns')
+        self.offenders_table.add_column('Min Heuristic - Name')
+        self.offenders_table.add_column('Min Heuristic - Score')
+
+        for name, val in result.items():
+            self.offenders_table.add_row(
+                name,
+                str(val.get('score')),
+                str(val.get('vuln_count')),
+                str(val.get('heur_min_name')),
+                str(val.get('heur_min_score')),
+            )
+
+        offenders_panel = Panel(self.offenders_table, title="Worst Packages by Score")
+
+        return offenders_panel
+
 
     def format_figure(self, fig_str):
         fig_str = fig_str.replace('+0.00e+00 - +1.00e+01',' 0 - 10 ')
