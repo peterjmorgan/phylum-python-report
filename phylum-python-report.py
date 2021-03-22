@@ -39,6 +39,7 @@ class PhylumReport():
 
 
     def read_cli_response_json(self, input_stream):
+        print(f"input_stream is {type(input_stream)}")
         self.jsondata = json.loads(input_stream)
         return
 
