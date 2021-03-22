@@ -3,7 +3,6 @@ import os
 import sys
 import json
 import datetime
-import fileinput
 from math import floor
 import termplotlib as tpl
 from rich import print
@@ -13,8 +12,6 @@ from rich.console import Console
 from rich.panel import Panel
 from numpy import histogram,percentile
 from collections import OrderedDict
-#from subprocess import Call
-from IPython import embed
 from pprint import pprint
 
 '''
