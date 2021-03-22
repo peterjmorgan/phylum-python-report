@@ -39,12 +39,7 @@ class PhylumReport():
 
 
     def read_cli_response_json(self, input_stream):
-        print(f"input_stream is {type(input_stream)}")
-        if isinstance(input_stream, textiowrapper):
-            print("it's a textiowrapper")
-            self.jsondata = json.load(input_stream)
-        else:
-            self.jsondata = json.loads(input_stream)
+        self.jsondata = json.loads(input_stream)
         return
 
     def build_vuln_table(self):
@@ -201,16 +196,13 @@ class PhylumReport():
 if __name__ == "__main__":
     pr = PhylumReport()
 
-    if not sys.stdin.isatty():
-        input_data = sys.stdin
-    else:
-        try:
-            input_filename = sys.argv[1]
-        except IndexError:
-            message = 'requires filename as argument if STDIN is not piped'
-            raise IndexError(message)
-        else:
-            input_data = open(input_filename,'r').read()
+    try:
+        input_filename = sys.argv[1]
+    except IndexError:
+        message = 'requires filename as argument'
+        raise IndexError(message)
+
+    input_data = open(input_filename,'r').read()
 
     pr.read_cli_response_json(input_data)
     pr.setup_layout()
