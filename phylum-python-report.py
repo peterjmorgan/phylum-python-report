@@ -103,19 +103,20 @@ class PhylumReport():
     def build_stats_panel(self):
         num_packages = str(len(self.jsondata.get('packages')))
         job_id = self.jsondata.get('id')
-        started_timestamp = self.jsondata.get('started_at')
-        updated_timestamp = self.jsondata.get('last_updated')
+        started_timestamp = self.jsondata.get('created_at')
+        #updated_timestamp = self.jsondata.get('last_updated')
         started_date_time = str(datetime.datetime.fromtimestamp(started_timestamp/1000).strftime('%c'))
-        updated_date_time = str(datetime.datetime.fromtimestamp(updated_timestamp/1000).strftime('%c'))
+        #updated_date_time = str(datetime.datetime.fromtimestamp(updated_timestamp/1000).strftime('%c'))
 
         #self.stats_table = Table(show_header=False)
         self.stats_table = Table.grid()
         self.stats_table.add_column()
         self.stats_table.add_column()
-        self.stats_table.add_row("[b]Package Count", num_packages)
-        self.stats_table.add_row("[b]Started Time", started_date_time)
-        self.stats_table.add_row("[b]Completed Time", updated_date_time)
-        self.stats_table.add_row("[b]Phylum Job ID", job_id)
+        self.stats_table.add_column()
+        self.stats_table.add_row("[b]Num Packages", ' ', num_packages)
+        self.stats_table.add_row("[b]Started Time", ' ', started_date_time)
+        #self.stats_table.add_row("[b]Completed Time", updated_date_time)
+        self.stats_table.add_row("[b]Job ID",' ', job_id)
 
         panel_stats = Panel(self.stats_table, title="Phylum Report")
         return panel_stats
