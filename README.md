@@ -1,6 +1,6 @@
 # phylum-python-report
 
-Utility script to generate a simple summary report of a job response from the Phylum API
+Utility script to generate a simple summary report of a verbose job response from the Phylum API
 
 ## Prerequisites
 * Python 3.x
@@ -25,9 +25,9 @@ pip install -r requirements.txt
 ## Usage
 
 ### Generate a textual report of a job response from the Phylum API
-1. Create a JSON file from the response from Phylum API
+1. Create a JSON file from the verbose response from Phylum API
 ```sh
-phylum-cli status -i <JOB_ID> | tail -n+2 > response.json
+phylum-cli status -i <JOB_ID> -V | tail -n+2 > response.json
 ```
 2. Generate report from JSON file
 ```sh
