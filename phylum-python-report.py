@@ -28,7 +28,7 @@ class PhylumReport():
         self.layout.split(Layout(name='A'),Layout(name='B'))
         self.layout['A'].size = 8
         self.layout['A'].update(self.build_stats_panel())
-        self.layout['B'].split(Layout(name='C'),Layout(name='D'),direction='horizontal')
+        self.layout['B'].split_row(Layout(name='C'),Layout(name='D'))
         self.layout['C'].split(Layout(name='E'),Layout(name='F'))
         self.layout['E'].update(self.build_ps_histogram())
         self.layout['D'].update(self.build_top_offenders_panel())
