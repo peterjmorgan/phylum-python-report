@@ -7,16 +7,13 @@ from math import floor
 import termplotlib as tpl
 from rich import print
 from rich.table import Table
+from rich.align import Align
 from rich.layout import Layout
 from rich.console import Console
 from rich.panel import Panel
 from numpy import histogram,percentile
 from collections import OrderedDict
 from pprint import pprint
-
-'''
-This expects JSON to be piped to STDIN
-'''
 
 class PhylumReport():
     def __init__(self):
@@ -26,13 +23,13 @@ class PhylumReport():
 
     def setup_layout(self):
         self.layout.split(Layout(name='A'),Layout(name='B'))
-        self.layout['A'].size = 8
+        self.layout['A'].size = 10
         self.layout['A'].update(self.build_stats_panel())
         self.layout['B'].split_row(Layout(name='C'),Layout(name='D'))
         self.layout['C'].split(Layout(name='E'),Layout(name='F'))
-        self.layout['E'].update(self.build_ps_histogram())
-        self.layout['D'].update(self.build_top_offenders_panel())
-        self.layout['F'].update(self.build_vuln_table())
+        self.layout['E'].update(Align.center(self.build_ps_histogram()))
+        self.layout['D'].update(Align.center(self.build_top_offenders_panel()))
+        self.layout['F'].update(Align.center(self.build_vuln_table()))
         #self.layout['AA'].update(self.build_stats_panel())
         self.console.print(self.layout)
         return
@@ -44,12 +41,11 @@ class PhylumReport():
 
     def build_vuln_table(self):
         temp_vuln_table = dict()
-        self.vuln_table = Table(show_header=True, header_style="Bold Magenta")
-        self.vuln_table.add_column('Package Name', width=25)
-        self.vuln_table.add_column('Critical')
-        self.vuln_table.add_column('High')
-        self.vuln_table.add_column('Medium')
-        self.vuln_table.add_column('Low')
+        all_crit    = 0
+        all_high    = 0
+        all_med     = 0
+        all_low     = 0
+        all_total   = 0
         for pkg in self.jsondata.get('packages'):
             if len(pkg.get('vulnerabilities')) > 0:
                 pkg_name = pkg.get('name')
@@ -57,8 +53,10 @@ class PhylumReport():
                 high = 0
                 med = 0
                 low = 0
+                total = 0
                 for vuln in pkg.get('vulnerabilities'):
                     severity = vuln.get('base_severity').lower()
+                    total += 1
                     if severity == 'high':
                         high += 1
                     elif severity == 'critical':
@@ -67,19 +65,32 @@ class PhylumReport():
                         med +=1
                     elif severity == 'low':
                         low +=1
-                    if not temp_vuln_table.get(pkg_name):
-                        temp_vuln_table[pkg_name] = [crit,high,med,low]
+
+                if not temp_vuln_table.get(pkg_name):
+                    temp_vuln_table[pkg_name] = [crit,high,med,low,total]
 
 
-                #print(f"pkg: {pkg_name} - high:{high} - med:{med} - low:{low}")
-                #  row = [pkg_name, high, med, low]
-                #  vuln_table.append(row)
-                #self.vuln_table.add_row(pkg_name, str(high), str(med), str(low))
-
+        self.vuln_table = Table(show_header=True, header_style="Bold Magenta", show_footer=True)
+        self.vuln_table.add_column('Package Name', width=25, footer="Total")
+        self.vuln_table.add_column('Critical')
+        self.vuln_table.add_column('High')
+        self.vuln_table.add_column('Medium')
+        self.vuln_table.add_column('Low')
+        self.vuln_table.add_column('Total')
         for pkg_name,sevs in temp_vuln_table.items():
-            self.vuln_table.add_row(pkg_name, str(sevs[0]), str(sevs[1]), str(sevs[2]), str(sevs[3]))
+            self.vuln_table.add_row(pkg_name, str(sevs[0]), str(sevs[1]), str(sevs[2]), str(sevs[3]), str(sevs[4]))
+            all_crit    += sevs[0]
+            all_high    += sevs[1]
+            all_med     += sevs[2]
+            all_low     += sevs[3]
+            all_total   += sevs[4]
 
-        #self.layout['right'].update(self.vuln_table)
+        self.vuln_table.columns[1].footer = str(all_crit)
+        self.vuln_table.columns[2].footer = str(all_high)
+        self.vuln_table.columns[3].footer = str(all_med)
+        self.vuln_table.columns[4].footer = str(all_low)
+        self.vuln_table.columns[5].footer = str(all_total)
+
         panel_vulntable = Panel(self.vuln_table, title="Software Vulnerabilities by Package")
         return panel_vulntable
 
@@ -117,6 +128,7 @@ class PhylumReport():
         self.stats_table.add_column()
         self.stats_table.add_column()
         self.stats_table.add_column()
+        self.stats_table.add_row("", ' ', ' ')
         self.stats_table.add_row("[b]Num Packages", ' ', num_packages)
         self.stats_table.add_row("[b]Started Time", ' ', started_date_time)
         #self.stats_table.add_row("[b]Completed Time", updated_date_time)
@@ -137,8 +149,8 @@ class PhylumReport():
 
         # sort them by package_score
         spsd = dict(sorted(psd.items(), key=lambda item: item[1]))
-        # get a list of the top (worst) 25
-        top25_offenders = list(spsd.items())[:25]
+        # get a list of the top (worst) 50
+        top25_offenders = list(spsd.items())[:50]
 
         # get the why
         result = OrderedDict()
@@ -149,7 +161,7 @@ class PhylumReport():
             for pkg in self.jsondata.get('packages'):
                 if pkg['name'] == name:
                     vulns = pkg['vulnerabilities'] # list
-                    result[name]['vuln_count'] = len(vulns)
+                    result[name]['vuln_count'] = pkg.get('num_vulnerabilities')
                     #TODO: add package_score to vulnerability table
                     heur = pkg['heuristics'] # dict
                     min_hscore = 1
@@ -163,19 +175,25 @@ class PhylumReport():
                     result[name]['heur_min_score'] = min_hscore
 
         self.offenders_table = Table(show_header=True)
-        self.offenders_table.add_column('Package Name')
-        self.offenders_table.add_column('Package Score')
-        self.offenders_table.add_column('Num - Vulns')
-        self.offenders_table.add_column('Min Heuristic - Name')
-        self.offenders_table.add_column('Min Heuristic - Score')
+        self.offenders_table.add_column('Package Name', width=30)
+        self.offenders_table.add_column('Score', width=6)
+        self.offenders_table.add_column('# Vulns', width=6)
+        self.offenders_table.add_column('Min Heur Name', width=12)
+        self.offenders_table.add_column('Min Heur Score', width=6)
 
         for name, val in result.items():
+            adj_score = (val.get('score') * 100)
+            adj_score = f"{adj_score:3.0f}"
+            adj_min_score = (val.get('heur_min_score') * 100)
+            adj_min_score = f"{adj_min_score:3.0f}"
             self.offenders_table.add_row(
                 name,
-                str(val.get('score')),
+                #str(val.get('score')),
+                str(adj_score),
                 str(val.get('vuln_count')),
                 str(val.get('heur_min_name')),
-                str(val.get('heur_min_score')),
+                #str(val.get('heur_min_score')),
+                str(adj_min_score),
             )
 
         offenders_panel = Panel(self.offenders_table, title="Worst Packages by Score")
