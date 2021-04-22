@@ -48,7 +48,7 @@ class PhylumReport():
         self.vuln_table.add_column('Package Name', width=25)
         self.vuln_table.add_column('Critical')
         self.vuln_table.add_column('High')
-        self.vuln_table.add_column('Med')
+        self.vuln_table.add_column('Medium')
         self.vuln_table.add_column('Low')
         for pkg in self.jsondata.get('packages'):
             if len(pkg.get('vulnerabilities')) > 0:
