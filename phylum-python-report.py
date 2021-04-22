@@ -46,6 +46,7 @@ class PhylumReport():
         temp_vuln_table = dict()
         self.vuln_table = Table(show_header=True, header_style="Bold Magenta")
         self.vuln_table.add_column('Package Name', width=25)
+        self.vuln_table.add_column('Critical')
         self.vuln_table.add_column('High')
         self.vuln_table.add_column('Med')
         self.vuln_table.add_column('Low')
@@ -67,7 +68,7 @@ class PhylumReport():
                     elif severity == 'low':
                         low +=1
                     if not temp_vuln_table.get(pkg_name):
-                        temp_vuln_table[pkg_name] = [high,med,low]
+                        temp_vuln_table[pkg_name] = [crit,high,med,low]
 
 
                 #print(f"pkg: {pkg_name} - high:{high} - med:{med} - low:{low}")
@@ -76,7 +77,7 @@ class PhylumReport():
                 #self.vuln_table.add_row(pkg_name, str(high), str(med), str(low))
 
         for pkg_name,sevs in temp_vuln_table.items():
-            self.vuln_table.add_row(pkg_name, str(sevs[0]), str(sevs[1]), str(sevs[2]))
+            self.vuln_table.add_row(pkg_name, str(sevs[0]), str(sevs[1]), str(sevs[2]), str(sevs[3]))
 
         #self.layout['right'].update(self.vuln_table)
         panel_vulntable = Panel(self.vuln_table, title="Software Vulnerabilities by Package")
