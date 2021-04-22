@@ -52,6 +52,7 @@ class PhylumReport():
         for pkg in self.jsondata.get('packages'):
             if len(pkg.get('vulnerabilities')) > 0:
                 pkg_name = pkg.get('name')
+                crit = 0
                 high = 0
                 med = 0
                 low = 0
@@ -59,7 +60,9 @@ class PhylumReport():
                     severity = vuln.get('base_severity').lower()
                     if severity == 'high':
                         high += 1
-                    elif severity == 'med':
+                    elif severity == 'critical':
+                        crit += 1
+                    elif severity == 'medium':
                         med +=1
                     elif severity == 'low':
                         low +=1
